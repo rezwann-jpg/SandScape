@@ -1,0 +1,4 @@
+build/  # Ignore the entire "build" directory
+*.o  # Ignore object files
+*.out  # Ignore executables (adjust extension if needed)
+*.exe  # Ignore executables (adjust extension for your OS)
