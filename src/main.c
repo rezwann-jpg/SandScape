@@ -1,5 +1,6 @@
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
+#include "../include/SDL2/SDL_ttf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -12,50 +13,126 @@
 #define GRID_HEIGHT 600
 #define CELL_SIZE 4
 
-enum CELL_TYPE {
+#define BUTTON_WIDTH 100
+#define BUTTON_HEIGHT 50
+#define BUTTON_SPACING 10
+
+enum CELL_TYPE
+{
     EMPTY,
     SAND,
     SOLID
 };
 
+enum PARTICLE_TYPE
+{
+    PARTICLE_SAND,
+    PARTICLE_WATER,
+    PARTICLE_SMOKE,
+    PARTICLE_SOLID,
+    NUM_PARTICLE_TYPES
+};
+
+enum PARTICLE_TYPE currentParticleType = PARTICLE_SAND;
+
+SDL_Rect buttonRects[3];
+const char *particleTypeNames[3] = {
+    "Sand",
+    "Water",
+    "Smoke"};
+
 int grid[GRID_HEIGHT / CELL_SIZE][GRID_WIDTH / CELL_SIZE];
 
-void initGrid() {
-    for (int y = 0; y < GRID_HEIGHT / CELL_SIZE; y++) {
-        for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++) {
+void initGrid()
+{
+    for (int y = 0; y < GRID_HEIGHT / CELL_SIZE; y++)
+    {
+        for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++)
+        {
             grid[y][x] = EMPTY;
         }
     }
 
-    for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++) {
-        grid[GRID_HEIGHT / CELL_SIZE - 1][x] = SOLID;
+    // for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++)
+    // {
+    //     grid[GRID_HEIGHT / CELL_SIZE - 1][x] = SOLID;
+    // }
+
+    int buttonX = BUTTON_SPACING;
+    int buttonY = BUTTON_SPACING;
+
+    for (int i = 0; i < 3; i++)
+    {
+        buttonRects[i] = (SDL_Rect){ buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT };
+        buttonX += BUTTON_WIDTH + BUTTON_SPACING;
     }
 }
 
-void addSand(int x, int y) {
-    if (x >= 0 && x < GRID_WIDTH / CELL_SIZE && y >= 0 && y < GRID_HEIGHT / CELL_SIZE) {
-        grid[y][x] = SAND;
+void addParticle(int x, int y)
+{
+    if (x >= 0 && x < GRID_WIDTH / CELL_SIZE && y >= 0 && y < GRID_HEIGHT / CELL_SIZE)
+    {
+        grid[y][x] = currentParticleType + 1;
     }
 }
 
-void updateSand() {
+void updateParticles()
+{
     int updateGrid[GRID_HEIGHT / CELL_SIZE][GRID_WIDTH / CELL_SIZE];
     memcpy(updateGrid, grid, sizeof(grid));
 
-    for (int y = GRID_HEIGHT / CELL_SIZE - 2; y >= 0; y--) {
-        for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++) {
-            if (grid[y][x] == SAND) {
-                if (grid[y + 1][x] == EMPTY) {
-                    updateGrid[y][x] = EMPTY;
-                    updateGrid[y + 1][x] = SAND;
-                }
-                else if (x > 0 && grid[y + 1][x - 1] == EMPTY) {
-                    updateGrid[y][x] = EMPTY;
-                    updateGrid[y + 1][x - 1] = SAND;
-                }
-                else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY) {
-                    updateGrid[y][x] = EMPTY;
-                    updateGrid[y + 1][x + 1] = SAND;
+    for (int y = GRID_HEIGHT / CELL_SIZE - 2; y >= 0; y--)
+    {
+        for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++)
+        {
+            int cellType = grid[y][x];
+            if (cellType > 0)
+            {
+                switch (cellType)
+                {
+                case PARTICLE_SAND + 1:
+                    if (grid[y + 1][x] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y + 1][x] = cellType;
+                    }
+                    else if (x > 0 && grid[y + 1][x - 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y + 1][x - 1] = cellType;
+                    }
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y + 1][x + 1] = cellType;
+                    }
+                    break;
+
+                case PARTICLE_WATER + 1:
+                    if (grid[y + 1][x] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y + 1][x] = cellType;
+                    }
+                    else if (x > 0 && grid[y][x - 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y][x - 1] = cellType;
+                    }
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y][x + 1] = cellType;
+                    }
+                    break;
+
+                case PARTICLE_SMOKE + 1:
+                    if (y > 0 && grid[y - 1][x] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y - 1][x] = cellType;
+                    }
+                    break;
                 }
             }
         }
@@ -64,72 +141,148 @@ void updateSand() {
     memcpy(grid, updateGrid, sizeof(grid));
 }
 
-int main(int argc, char **argv) {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+void renderGame(SDL_Renderer *renderer, TTF_Font *font)
+{
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_SetRenderDrawColor(renderer, 0, 242, 255, 255);
+    for (int i = 0; i < 3; i++)
+    {
+        SDL_RenderFillRect(renderer, &buttonRects[i]);
+        SDL_Color textColor = {255, 255, 0, 255};
+        SDL_Surface *textSurface = TTF_RenderText_Solid(font, particleTypeNames[i], textColor);
+        if (textSurface != NULL)
+        {
+            SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            if (textTexture != NULL)
+            {
+                SDL_Rect textRect = {
+                    buttonRects[i].x + (BUTTON_WIDTH - textSurface->w) / 2,
+                    buttonRects[i].y + (BUTTON_HEIGHT - textSurface->h) / 2,
+                    textSurface->w,
+                    textSurface->h};
+                SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+                SDL_DestroyTexture(textTexture);
+            }
+            SDL_FreeSurface(textSurface);
+        }
+        else 
+        {
+            fprintf(stderr, "Error rendering text: %s\n", TTF_GetError());
+        }
+    }
+
+    for (int y = 0; y < GRID_HEIGHT / CELL_SIZE; y++)
+    {
+        for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++)
+        {
+            SDL_Rect rect = {x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE};
+            switch (grid[y][x])
+            {
+            case PARTICLE_SAND + 1:
+                SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+                break;
+
+            case PARTICLE_WATER + 1:
+                SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+                break;
+
+            case PARTICLE_SMOKE + 1:
+                SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
+                break;
+
+            case PARTICLE_SOLID + 1:
+                SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
+                break;
+            default:
+                continue;
+            }
+
+            SDL_RenderFillRect(renderer, &rect);
+        }
+    }
+
+    SDL_RenderPresent(renderer);
+}
+
+int main(int argc, char **argv)
+{
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
+    {
         fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
-        return 1;
+    }
+
+    if (TTF_Init() < 0)
+    {
+        fprintf(stderr, "Font initializaation failed: %s\n", TTF_GetError());
+    }
+
+    TTF_Font *font = TTF_OpenFont("D:/Dev/SandScape/assets/MonospaceTypewriter.ttf", 24);
+    if (font == NULL)
+    {
+        fprintf(stderr, "Font creation failed: %s\n", TTF_GetError());
     }
 
     SDL_Window *window = SDL_CreateWindow(GAME_TITLE, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, GRID_WIDTH, GRID_HEIGHT, SDL_WINDOW_SHOWN);
 
-    if (window == NULL) {
+    if (window == NULL)
+    {
         fprintf(stderr, "Window could not be created: %s\n", SDL_GetError());
-        return 1;
     }
 
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    if (renderer == NULL) {
+    if (renderer == NULL)
+    {
         fprintf(stderr, "Renderer could not be created: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
         SDL_DestroyRenderer(renderer);
         SDL_Quit();
         return 1;
     }
-
+    
+    initGrid();
 
     SDL_Event event;
     bool running = true;
 
-    while (running) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
+    while (running)
+    {
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_QUIT)
+            {
                 running = false;
             }
-            else if (event.type == SDL_MOUSEBUTTONDOWN) {
+            else if (event.type == SDL_MOUSEBUTTONDOWN)
+            {
                 int mousePosX, mousePosY;
                 SDL_GetMouseState(&mousePosX, &mousePosY);
-                addSand(mousePosX / CELL_SIZE, mousePosY / CELL_SIZE);
-            }
-        }
-
-        updateSand();
-
-        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
-        SDL_RenderClear(renderer);
-
-        for (int y = 0; y < GRID_HEIGHT / CELL_SIZE; y++) {
-            for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++) {
-                SDL_Rect rect = { x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE };
-                switch (grid[y][x]) {
-                case SAND:
-                    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-                    break;
-                
-                case SOLID:
-                    SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
-                    break;
-                default:
-                    continue;
+                if (mousePosY >= GRID_HEIGHT)
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        if (SDL_PointInRect(&(SDL_Point){mousePosX, mousePosY}, &buttonRects[i]))
+                        {
+                            currentParticleType = (enum PARTICLE_TYPE)i;
+                            break;
+                        }
+                    }
                 }
-
-                SDL_RenderFillRect(renderer, &rect);
+                else
+                {
+                    addParticle(mousePosX / CELL_SIZE, mousePosY / CELL_SIZE);
+                }
             }
         }
 
-        SDL_RenderPresent(renderer);
+        updateParticles();
+        renderGame(renderer, font);
     }
 
+    TTF_CloseFont(font);
+    TTF_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
