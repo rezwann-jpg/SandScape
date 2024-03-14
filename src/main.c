@@ -247,6 +247,9 @@ int main(int argc, char **argv)
     SDL_Event event;
     bool running = true;
 
+    bool isDragging = false;
+    int prevMouseX = -1, prevMouseY = -1;
+
     while (running)
     {
         while (SDL_PollEvent(&event))
@@ -259,20 +262,41 @@ int main(int argc, char **argv)
             {
                 int mousePosX, mousePosY;
                 SDL_GetMouseState(&mousePosX, &mousePosY);
-                if (mousePosY >= GRID_HEIGHT)
+                if (mousePosY < GRID_HEIGHT)
                 {
-                    for (int i = 0; i < 3; i++)
-                    {
-                        if (SDL_PointInRect(&(SDL_Point){mousePosX, mousePosY}, &buttonRects[i]))
-                        {
-                            currentParticleType = (enum PARTICLE_TYPE)i;
-                            break;
-                        }
+                    isDragging = true;
+                    prevMouseX = mousePosX / CELL_SIZE;
+                    prevMouseY = mousePosY / CELL_SIZE;
+                }
+            } else if (event.type == SDL_MOUSEBUTTONUP) {
+                isDragging = false;
+                prevMouseX = -1;
+                prevMouseY = -1;
+            } else if (event.type == SDL_MOUSEMOTION && isDragging) {
+                int x, y;
+                SDL_GetMouseState(&x, &y);
+                if (y < GRID_HEIGHT) {
+                    int currX = x / CELL_SIZE;
+                    int currY = y / CELL_SIZE;
+                    if (currX != prevMouseX || currY != prevMouseY) {
+                        addParticle(currX, currY);
+                        prevMouseX = currX;
+                        prevMouseY = currY;
                     }
                 }
-                else
-                {
-                    addParticle(mousePosX / CELL_SIZE, mousePosY / CELL_SIZE);
+            }
+            else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_UP) {
+                    fprintf(stdout, "Sand Selected\n");
+                    currentParticleType = PARTICLE_SAND;
+                }
+                else if (event.key.keysym.sym == SDLK_DOWN) {
+                    fprintf(stdout, "Water Selected\n");
+                    currentParticleType = PARTICLE_WATER;
+                }
+                else if (event.key.keysym.sym == SDLK_RIGHT) {
+                    fprintf(stdout, "Smoke Selected\n");
+                    currentParticleType = PARTICLE_SMOKE;
                 }
             }
         }
