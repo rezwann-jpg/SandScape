@@ -20,8 +20,6 @@
 enum CELL_TYPE
 {
     EMPTY,
-    SAND,
-    SOLID
 };
 
 enum PARTICLE_TYPE
@@ -218,7 +216,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Font initializaation failed: %s\n", TTF_GetError());
     }
 
-    TTF_Font *font = TTF_OpenFont("D:/Dev/SandScape/assets/MonospaceTypewriter.ttf", 24);
+    TTF_Font *font = TTF_OpenFont("../assets/MonospaceTypewriter.ttf", 24);
     if (font == NULL)
     {
         fprintf(stderr, "Font creation failed: %s\n", TTF_GetError());
