@@ -17,6 +17,8 @@
 #define BUTTON_HEIGHT 50
 #define BUTTON_SPACING 10
 
+#define NUM_PARTICLES 3
+
 enum CELL_TYPE
 {
     EMPTY,
@@ -28,13 +30,13 @@ enum PARTICLE_TYPE
     PARTICLE_WATER,
     PARTICLE_SMOKE,
     PARTICLE_SOLID,
-    NUM_PARTICLE_TYPES
+    PARTICLE_CLEAR
 };
 
 enum PARTICLE_TYPE currentParticleType = PARTICLE_SAND;
 
-SDL_Rect buttonRects[3];
-const char *particleTypeNames[3] = {
+SDL_Rect buttonRects[NUM_PARTICLES];
+const char *particleTypeNames[NUM_PARTICLES] = {
     "Sand",
     "Water",
     "Smoke"};
@@ -51,26 +53,35 @@ void initGrid()
         }
     }
 
+    // don't need it
     // for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++)
     // {
     //     grid[GRID_HEIGHT / CELL_SIZE - 1][x] = SOLID;
     // }
 
-    int buttonX = BUTTON_SPACING;
-    int buttonY = BUTTON_SPACING;
+    // will implement UI buttons in the futue
+    // int buttonX = BUTTON_SPACING;
+    // int buttonY = BUTTON_SPACING;
 
-    for (int i = 0; i < 3; i++)
-    {
-        buttonRects[i] = (SDL_Rect){ buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT };
-        buttonX += BUTTON_WIDTH + BUTTON_SPACING;
-    }
+    // for (int i = 0; i < 3; i++)
+    // {
+    //     buttonRects[i] = (SDL_Rect){ buttonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT };
+    //     buttonX += BUTTON_WIDTH + BUTTON_SPACING;
+    // }
 }
 
 void addParticle(int x, int y)
 {
     if (x >= 0 && x < GRID_WIDTH / CELL_SIZE && y >= 0 && y < GRID_HEIGHT / CELL_SIZE)
     {
-        grid[y][x] = currentParticleType + 1;
+        if (currentParticleType == PARTICLE_CLEAR) 
+        {
+            grid[y][x] = EMPTY;
+        }
+        else 
+        {
+            grid[y][x] = currentParticleType + 1;
+        }
     }
 }
 
@@ -144,32 +155,33 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    SDL_SetRenderDrawColor(renderer, 0, 242, 255, 255);
-    for (int i = 0; i < 3; i++)
-    {
-        SDL_RenderFillRect(renderer, &buttonRects[i]);
-        SDL_Color textColor = {255, 255, 0, 255};
-        SDL_Surface *textSurface = TTF_RenderText_Solid(font, particleTypeNames[i], textColor);
-        if (textSurface != NULL)
-        {
-            SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-            if (textTexture != NULL)
-            {
-                SDL_Rect textRect = {
-                    buttonRects[i].x + (BUTTON_WIDTH - textSurface->w) / 2,
-                    buttonRects[i].y + (BUTTON_HEIGHT - textSurface->h) / 2,
-                    textSurface->w,
-                    textSurface->h};
-                SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
-                SDL_DestroyTexture(textTexture);
-            }
-            SDL_FreeSurface(textSurface);
-        }
-        else 
-        {
-            fprintf(stderr, "Error rendering text: %s\n", TTF_GetError());
-        }
-    }
+    // buttons rendering, will do it later
+    // SDL_SetRenderDrawColor(renderer, 0, 242, 255, 255);
+    // for (int i = 0; i < NUM_PARTICLES; i++)
+    // {
+    //     SDL_RenderFillRect(renderer, &buttonRects[i]);
+    //     SDL_Color textColor = {255, 255, 0, 255};
+    //     SDL_Surface *textSurface = TTF_RenderText_Solid(font, particleTypeNames[i], textColor);
+    //     if (textSurface != NULL)
+    //     {
+    //         SDL_Texture *textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    //         if (textTexture != NULL)
+    //         {
+    //             SDL_Rect textRect = {
+    //                 buttonRects[i].x + (BUTTON_WIDTH - textSurface->w) / 2,
+    //                 buttonRects[i].y + (BUTTON_HEIGHT - textSurface->h) / 2,
+    //                 textSurface->w,
+    //                 textSurface->h};
+    //             SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+    //             SDL_DestroyTexture(textTexture);
+    //         }
+    //         SDL_FreeSurface(textSurface);
+    //     }
+    //     else 
+    //     {
+    //         fprintf(stderr, "Error rendering text: %s\n", TTF_GetError());
+    //     }
+    // }
 
     for (int y = 0; y < GRID_HEIGHT / CELL_SIZE; y++)
     {
@@ -193,6 +205,11 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
             case PARTICLE_SOLID + 1:
                 SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
                 break;
+
+            case PARTICLE_CLEAR + 1:
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                break;
+
             default:
                 continue;
             }
@@ -295,6 +312,10 @@ int main(int argc, char **argv)
                 else if (event.key.keysym.sym == SDLK_RIGHT) {
                     fprintf(stdout, "Smoke Selected\n");
                     currentParticleType = PARTICLE_SMOKE;
+                }
+                else if (event.key.keysym.sym == SDLK_LEFT) {
+                    fprintf(stdout, "Erase Selected\n");
+                    currentParticleType = PARTICLE_CLEAR;
                 }
             }
         }
