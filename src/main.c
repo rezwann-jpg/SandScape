@@ -180,7 +180,7 @@ void updateParticles()
                     {
                         grid[y][x] = EMPTY;
                     }
-                    break;
+                    break;  
                 }
             }
         }
@@ -244,7 +244,7 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
                 break;
 
             case PARTICLE_SOLID + 1:
-                SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
+                SDL_SetRenderDrawColor(renderer, 51, 64, 70, 255);
                 break;
 
             case PARTICLE_CLEAR + 1:
@@ -380,6 +380,10 @@ int main(int argc, char **argv)
                 else if (event.key.keysym.sym == SDLK_LEFT) {
                     fprintf(stdout, "Erase Selected\n");
                     currentParticleType = PARTICLE_CLEAR;
+                }
+                else if (event.key.keysym.sym == SDLK_o) {
+                    fprintf(stdout, "Stone Selected\n");
+                    currentParticleType = PARTICLE_SOLID;
                 }
             }
         }
