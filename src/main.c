@@ -9,6 +9,8 @@
 
 #define GAME_TITLE "SandScape"
 
+#define FPS 60
+
 #define GRID_WIDTH 800
 #define GRID_HEIGHT 600
 #define CELL_SIZE 4
@@ -42,6 +44,9 @@ const char *particleTypeNames[NUM_PARTICLES] = {
     "Smoke"};
 
 int grid[GRID_HEIGHT / CELL_SIZE][GRID_WIDTH / CELL_SIZE];
+
+int smokeTimer = 0;
+const int smokeLifeSpan = 60;
 
 void initGrid()
 {
@@ -141,11 +146,47 @@ void updateParticles()
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y - 1][x] = cellType;
                     }
+                    else 
+                    {
+                        int random = rand() % 10;
+                        if (random < 1) 
+                        {
+                            int direction = rand() % 4;
+                            if (direction == 0 && y > 0 && grid[y - 1][x] == EMPTY) 
+                            {
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y - 1][x] = cellType;
+                            }
+                            else if (direction == 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
+                            {
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y + 1][x] = cellType;
+                            }
+                            else if (direction == 2 && x > 0 && grid[y][x - 1] == EMPTY)
+                            {
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y][x - 1] = cellType;
+                            }
+                            else if (direction == 3 && x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == EMPTY)
+                            {
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y][x + 1] = cellType;
+                            }
+                        }
+                    }
+
+                    smokeTimer--;
+                    if (smokeTimer <= 0) 
+                    {
+                        grid[y][x] = EMPTY;
+                    }
                     break;
                 }
             }
         }
     }
+
+    smokeTimer = smokeLifeSpan;
 
     memcpy(grid, updateGrid, sizeof(grid));
 }
@@ -221,6 +262,27 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
     SDL_RenderPresent(renderer);
 }
 
+void limitFrameRate(int targetFPS, SDL_Renderer *renderer, TTF_Font *font) 
+{
+    clock_t start, end;
+    double elapsedSeconds;
+    int waitTime;
+
+    start = clock();
+
+    updateParticles();
+    renderGame(renderer, font);
+
+    end = clock();
+    elapsedSeconds = (double)(end - start) / CLOCKS_PER_SEC;
+    waitTime = (int)((1.0 / targetFPS) - elapsedSeconds) * 1000;
+
+    if (waitTime > 0) 
+    {
+        SDL_Delay(waitTime);
+    } 
+}
+
 int main(int argc, char **argv)
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -257,6 +319,8 @@ int main(int argc, char **argv)
         return 1;
     }
     
+    srand(time(NULL));
+
     initGrid();
 
     SDL_Event event;
@@ -320,8 +384,7 @@ int main(int argc, char **argv)
             }
         }
 
-        updateParticles();
-        renderGame(renderer, font);
+        limitFrameRate(FPS, renderer, font);
     }
 
     TTF_CloseFont(font);
