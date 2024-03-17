@@ -128,15 +128,25 @@ void updateParticles()
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y + 1][x] = cellType;
                     }
-                    else if (x > 0 && grid[y][x - 1] == EMPTY)
+                    else if (x > 0 && grid[y + 1][x - 1] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
-                        updateGrid[y][x - 1] = cellType;
+                        updateGrid[y + 1][x - 1] = cellType;
+                    }
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y + 1][x + 1] = cellType;
                     }
                     else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y][x + 1] = cellType;
+                    }
+                    else if (x > 0 && grid[y][x - 1] == EMPTY) 
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y][x - 1] = cellType;
                     }
                     break;
 
@@ -151,23 +161,23 @@ void updateParticles()
                         int random = rand() % 10;
                         if (random < 1) 
                         {
-                            int direction = rand() % 4;
-                            if (direction == 0 && y > 0 && grid[y - 1][x] == EMPTY) 
+                            int directionSmoke = rand() % 4;
+                            if (directionSmoke == 0 && y > 0 && grid[y - 1][x] == EMPTY) 
                             {
                                 updateGrid[y][x] = EMPTY;
                                 updateGrid[y - 1][x] = cellType;
                             }
-                            else if (direction == 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
+                            else if (directionSmoke == 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
                             {
                                 updateGrid[y][x] = EMPTY;
                                 updateGrid[y + 1][x] = cellType;
                             }
-                            else if (direction == 2 && x > 0 && grid[y][x - 1] == EMPTY)
+                            else if (directionSmoke == 2 && x > 0 && grid[y][x - 1] == EMPTY)
                             {
                                 updateGrid[y][x] = EMPTY;
                                 updateGrid[y][x - 1] = cellType;
                             }
-                            else if (direction == 3 && x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == EMPTY)
+                            else if (directionSmoke == 3 && x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == EMPTY)
                             {
                                 updateGrid[y][x] = EMPTY;
                                 updateGrid[y][x + 1] = cellType;
@@ -193,7 +203,7 @@ void updateParticles()
 
 void renderGame(SDL_Renderer *renderer, TTF_Font *font)
 {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(renderer, 35, 31, 32, 255);
     SDL_RenderClear(renderer);
 
     // buttons rendering, will do it later
@@ -262,27 +272,6 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
     SDL_RenderPresent(renderer);
 }
 
-void limitFrameRate(int targetFPS, SDL_Renderer *renderer, TTF_Font *font) 
-{
-    clock_t start, end;
-    double elapsedSeconds;
-    int waitTime;
-
-    start = clock();
-
-    updateParticles();
-    renderGame(renderer, font);
-
-    end = clock();
-    elapsedSeconds = (double)(end - start) / CLOCKS_PER_SEC;
-    waitTime = (int)((1.0 / targetFPS) - elapsedSeconds) * 1000;
-
-    if (waitTime > 0) 
-    {
-        SDL_Delay(waitTime);
-    } 
-}
-
 int main(int argc, char **argv)
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -329,8 +318,12 @@ int main(int argc, char **argv)
     bool isDragging = false;
     int prevMouseX = -1, prevMouseY = -1;
 
+    const int desiredDelta = 1000 / FPS;
+
     while (running)
     {
+        Uint32 startLoop = SDL_GetTicks();
+
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT)
@@ -388,7 +381,14 @@ int main(int argc, char **argv)
             }
         }
 
-        limitFrameRate(FPS, renderer, font);
+        updateParticles();
+        renderGame(renderer, font);
+
+        int delta = SDL_GetTicks() - startLoop;
+        if (delta < desiredDelta) 
+        {
+            SDL_Delay(desiredDelta - delta);
+        }
     }
 
     TTF_CloseFont(font);
