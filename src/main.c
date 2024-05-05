@@ -131,41 +131,25 @@ void updateParticles()
                 switch (cellType)
                 {
                 case PARTICLE_SAND + 1:
-                    if (grid[y + 1][x] == EMPTY || grid[y + 1][x] == PARTICLE_WATER + 1)
+                    if (grid[y + 1][x] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
-                        if (grid[y + 1][x] == PARTICLE_WATER + 1)
-                        {
-                            updateGrid[y + 1][x] = PARTICLE_WET_SAND + 1;
-                        }
-                        else
-                        {
-                            updateGrid[y + 1][x] = cellType;
-                        }
+                        updateGrid[y + 1][x] = cellType;
                     }
-                    else if (x > 0 && (grid[y + 1][x - 1] == EMPTY || grid[y + 1][x - 1] == PARTICLE_WATER + 1))
+                    else if (x > 0 && grid[y + 1][x - 1] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
-                        if (grid[y + 1][x - 1] == PARTICLE_WATER + 1)
-                        {
-                            updateGrid[y + 1][x - 1] = PARTICLE_WET_SAND + 1;
-                        }
-                        else
-                        {
-                            updateGrid[y + 1][x - 1] = cellType;
-                        }
+                        updateGrid[y + 1][x - 1] = cellType;
                     }
-                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && (grid[y + 1][x + 1] == EMPTY || grid[y + 1][x + 1] == PARTICLE_WATER + 1))
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
-                        if (grid[y + 1][x + 1] == PARTICLE_WATER + 1)
-                        {
-                            updateGrid[y + 1][x + 1] = PARTICLE_WET_SAND + 1;
-                        }
-                        else
-                        {
-                            updateGrid[y + 1][x + 1] = cellType;
-                        }
+                        updateGrid[y + 1][x + 1] = cellType;
+                    }
+                    else if (grid[y + 1][x] == PARTICLE_WATER + 1)
+                    {
+                        updateGrid[y][x] = PARTICLE_WATER + 1;
+                        updateGrid[y + 1][x] = PARTICLE_WET_SAND + 1;
                     }
                     break;
 
@@ -213,17 +197,18 @@ void updateParticles()
                     break;
 
                 case PARTICLE_WET_SAND + 1:
-                    if (grid[y + 1][x] == EMPTY)
+                    if (grid[y + 1][x] == EMPTY || grid[y + 1][x] == PARTICLE_WATER + 1)
                     {
-                        updateGrid[y][x] = EMPTY;
-                        updateGrid[y + 1][x] = cellType;
+                        int temp = updateGrid[y + 1][x];
+                        updateGrid[y + 1][x] = updateGrid[y][x];
+                        updateGrid[y][x] = temp;
                     }
-                    else if (x > 0 && grid[y + 1][x - 1] == EMPTY)
+                    else if (x > 0 && (grid[y + 1][x - 1] == EMPTY || grid[y + 1][x - 1] == PARTICLE_WATER + 1))
                     {
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y + 1][x - 1] = cellType;
                     }
-                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && (grid[y + 1][x + 1] == EMPTY || grid[y + 1][x + 1] == PARTICLE_WATER + 1))
                     {
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y + 1][x + 1] = cellType;
