@@ -30,12 +30,15 @@ enum PARTICLE_TYPE
 {
     PARTICLE_SAND,
     PARTICLE_WATER,
+    PARTICLE_WET_SAND,
     PARTICLE_SMOKE,
     PARTICLE_SOLID,
     PARTICLE_CLEAR
 };
 
 enum PARTICLE_TYPE currentParticleType = PARTICLE_SAND;
+
+int brushSize = 1;
 
 SDL_Rect buttonRects[NUM_PARTICLES];
 const char *particleTypeNames[NUM_PARTICLES] = {
@@ -61,10 +64,10 @@ void initGrid()
     // don't need it
     // for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++)
     // {
-    //     grid[GRID_HEIGHT / CELL_SIZE - 1][x] = SOLID;
+    //     grid[GRID_HEIGHT / CELL_SIZE - 1][x] = PARTICLE_SOLID;
     // }
 
-    // will implement UI buttons in the futue
+    // will implement UI buttons in the future
     // int buttonX = BUTTON_SPACING;
     // int buttonY = BUTTON_SPACING;
 
@@ -75,17 +78,38 @@ void initGrid()
     // }
 }
 
+void clearGrid()
+{
+    for (int y = 0; y < GRID_HEIGHT / CELL_SIZE; y++)
+    {
+        for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++)
+        {
+            grid[y][x] = EMPTY;
+        }
+    }
+}
+
 void addParticle(int x, int y)
 {
     if (x >= 0 && x < GRID_WIDTH / CELL_SIZE && y >= 0 && y < GRID_HEIGHT / CELL_SIZE)
     {
-        if (currentParticleType == PARTICLE_CLEAR) 
+        for (int dy = -brushSize; dy <= brushSize; dy++)
         {
-            grid[y][x] = EMPTY;
-        }
-        else 
-        {
-            grid[y][x] = currentParticleType + 1;
+            for (int dx = -brushSize; dx <= brushSize; dx++)
+            {
+                int targetX = x + dx;
+                int targetY = y + dy;
+                if (targetX >= 0 && targetX < GRID_WIDTH / CELL_SIZE && targetY >= 0 && targetY < GRID_HEIGHT / CELL_SIZE &&
+                    abs(dx) <= brushSize && abs(dy) <= brushSize && currentParticleType == PARTICLE_CLEAR)
+                {
+                    grid[targetY][targetX] = EMPTY;
+                }
+                else if (targetX >= 0 && targetX < GRID_WIDTH / CELL_SIZE && targetY >= 0 && targetY < GRID_HEIGHT / CELL_SIZE &&
+                         abs(dx) <= brushSize && abs(dy) <= brushSize)
+                {
+                    grid[targetY][targetX] = currentParticleType + 1;
+                }
+            }
         }
     }
 }
@@ -93,7 +117,9 @@ void addParticle(int x, int y)
 void updateParticles()
 {
     int updateGrid[GRID_HEIGHT / CELL_SIZE][GRID_WIDTH / CELL_SIZE];
-    memcpy(updateGrid, grid, sizeof(grid));
+    int visitedGrid[GRID_HEIGHT / CELL_SIZE][GRID_WIDTH / CELL_SIZE];
+    memcpy(updateGrid, grid, sizeof(updateGrid));
+    memset(visitedGrid, 0, sizeof(visitedGrid));
 
     for (int y = GRID_HEIGHT / CELL_SIZE - 2; y >= 0; y--)
     {
@@ -105,24 +131,88 @@ void updateParticles()
                 switch (cellType)
                 {
                 case PARTICLE_SAND + 1:
-                    if (grid[y + 1][x] == EMPTY)
+                    if (grid[y + 1][x] == EMPTY || grid[y + 1][x] == PARTICLE_WATER + 1)
                     {
                         updateGrid[y][x] = EMPTY;
-                        updateGrid[y + 1][x] = cellType;
+                        if (grid[y + 1][x] == PARTICLE_WATER + 1)
+                        {
+                            updateGrid[y + 1][x] = PARTICLE_WET_SAND + 1;
+                        }
+                        else
+                        {
+                            updateGrid[y + 1][x] = cellType;
+                        }
                     }
-                    else if (x > 0 && grid[y + 1][x - 1] == EMPTY)
+                    else if (x > 0 && (grid[y + 1][x - 1] == EMPTY || grid[y + 1][x - 1] == PARTICLE_WATER + 1))
                     {
                         updateGrid[y][x] = EMPTY;
-                        updateGrid[y + 1][x - 1] = cellType;
+                        if (grid[y + 1][x - 1] == PARTICLE_WATER + 1)
+                        {
+                            updateGrid[y + 1][x - 1] = PARTICLE_WET_SAND + 1;
+                        }
+                        else
+                        {
+                            updateGrid[y + 1][x - 1] = cellType;
+                        }
                     }
-                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && (grid[y + 1][x + 1] == EMPTY || grid[y + 1][x + 1] == PARTICLE_WATER + 1))
                     {
                         updateGrid[y][x] = EMPTY;
-                        updateGrid[y + 1][x + 1] = cellType;
+                        if (grid[y + 1][x + 1] == PARTICLE_WATER + 1)
+                        {
+                            updateGrid[y + 1][x + 1] = PARTICLE_WET_SAND + 1;
+                        }
+                        else
+                        {
+                            updateGrid[y + 1][x + 1] = cellType;
+                        }
                     }
                     break;
 
                 case PARTICLE_WATER + 1:
+                    if (!visitedGrid[y][x])
+                    {
+                        visitedGrid[y][x] = 1;
+                        if (y < GRID_HEIGHT / CELL_SIZE - 1 && !visitedGrid[y + 1][x] && grid[y + 1][x] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x] = cellType;
+                            visitedGrid[y + 1][x] = 1;
+                        }
+                        else if (x > 0 && !visitedGrid[y + 1][x - 1] && grid[y + 1][x - 1] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x - 1] = cellType;
+                            visitedGrid[y + 1][x - 1] = 1;
+                        }
+                        else if (x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y + 1][x + 1] && grid[y + 1][x + 1] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x + 1] = cellType;
+                            visitedGrid[y + 1][x + 1] = 1;
+                        }
+                        else
+                        {
+                            int direction = rand() % 2;
+                            if (direction == 0 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y][x + 1] && grid[y][x + 1] == EMPTY)
+                            {
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y][x + 1] = cellType;
+                                visitedGrid[y][x + 1] = 1;
+                                // fprintf(stdout ,"case 1\n");
+                            }
+                            else if (direction == 1 && x > 0 && !visitedGrid[y][x - 1] && grid[y][x - 1] == EMPTY)
+                            {
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y][x - 1] = cellType;
+                                visitedGrid[y][x - 1] = 1;
+                                // fprintf(stdout ,"case 2\n");
+                            }
+                        }
+                    }
+                    break;
+
+                case PARTICLE_WET_SAND + 1:
                     if (grid[y + 1][x] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
@@ -137,16 +227,6 @@ void updateParticles()
                     {
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y + 1][x + 1] = cellType;
-                    }
-                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == EMPTY)
-                    {
-                        updateGrid[y][x] = EMPTY;
-                        updateGrid[y][x + 1] = cellType;
-                    }
-                    else if (x > 0 && grid[y][x - 1] == EMPTY) 
-                    {
-                        updateGrid[y][x] = EMPTY;
-                        updateGrid[y][x - 1] = cellType;
                     }
                     break;
 
@@ -156,13 +236,13 @@ void updateParticles()
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y - 1][x] = cellType;
                     }
-                    else 
+                    else
                     {
                         int random = rand() % 10;
-                        if (random < 1) 
+                        if (random < 1)
                         {
                             int directionSmoke = rand() % 4;
-                            if (directionSmoke == 0 && y > 0 && grid[y - 1][x] == EMPTY) 
+                            if (directionSmoke == 0 && y > 0 && grid[y - 1][x] == EMPTY)
                             {
                                 updateGrid[y][x] = EMPTY;
                                 updateGrid[y - 1][x] = cellType;
@@ -186,11 +266,11 @@ void updateParticles()
                     }
 
                     smokeTimer--;
-                    if (smokeTimer <= 0) 
+                    if (smokeTimer <= 0)
                     {
                         grid[y][x] = EMPTY;
                     }
-                    break;  
+                    break;
                 }
             }
         }
@@ -228,7 +308,7 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
     //         }
     //         SDL_FreeSurface(textSurface);
     //     }
-    //     else 
+    //     else
     //     {
     //         fprintf(stderr, "Error rendering text: %s\n", TTF_GetError());
     //     }
@@ -242,11 +322,15 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
             switch (grid[y][x])
             {
             case PARTICLE_SAND + 1:
-                SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+                SDL_SetRenderDrawColor(renderer, 255, 226, 156, 255);
                 break;
 
             case PARTICLE_WATER + 1:
                 SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+                break;
+
+            case PARTICLE_WET_SAND + 1:
+                SDL_SetRenderDrawColor(renderer, 174, 143, 96, 255);
                 break;
 
             case PARTICLE_SMOKE + 1:
@@ -297,7 +381,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Window could not be created: %s\n", SDL_GetError());
     }
 
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
     if (renderer == NULL)
     {
@@ -307,7 +391,7 @@ int main(int argc, char **argv)
         SDL_Quit();
         return 1;
     }
-    
+
     srand(time(NULL));
 
     initGrid();
@@ -340,43 +424,70 @@ int main(int argc, char **argv)
                     prevMouseX = mousePosX / CELL_SIZE;
                     prevMouseY = mousePosY / CELL_SIZE;
                 }
-            } else if (event.type == SDL_MOUSEBUTTONUP) {
+            }
+            else if (event.type == SDL_MOUSEBUTTONUP)
+            {
                 isDragging = false;
                 prevMouseX = -1;
                 prevMouseY = -1;
-            } else if (event.type == SDL_MOUSEMOTION && isDragging) {
+            }
+            else if (event.type == SDL_MOUSEMOTION && isDragging)
+            {
                 int x, y;
                 SDL_GetMouseState(&x, &y);
-                if (y < GRID_HEIGHT) {
+                if (y < GRID_HEIGHT)
+                {
                     int currX = x / CELL_SIZE;
                     int currY = y / CELL_SIZE;
-                    if (currX != prevMouseX || currY != prevMouseY) {
+                    if (currX != prevMouseX || currY != prevMouseY)
+                    {
                         addParticle(currX, currY);
                         prevMouseX = currX;
                         prevMouseY = currY;
                     }
                 }
             }
-            else if (event.type == SDL_KEYDOWN) {
-                if (event.key.keysym.sym == SDLK_UP) {
+            else if (event.type == SDL_KEYDOWN)
+            {
+                if (event.key.keysym.sym == SDLK_UP)
+                {
                     fprintf(stdout, "Sand Selected\n");
                     currentParticleType = PARTICLE_SAND;
                 }
-                else if (event.key.keysym.sym == SDLK_DOWN) {
+                else if (event.key.keysym.sym == SDLK_DOWN)
+                {
                     fprintf(stdout, "Water Selected\n");
                     currentParticleType = PARTICLE_WATER;
                 }
-                else if (event.key.keysym.sym == SDLK_RIGHT) {
+                else if (event.key.keysym.sym == SDLK_RIGHT)
+                {
                     fprintf(stdout, "Smoke Selected\n");
                     currentParticleType = PARTICLE_SMOKE;
                 }
-                else if (event.key.keysym.sym == SDLK_LEFT) {
+                else if (event.key.keysym.sym == SDLK_LEFT)
+                {
                     fprintf(stdout, "Erase Selected\n");
                     currentParticleType = PARTICLE_CLEAR;
                 }
-                else if (event.key.keysym.sym == SDLK_o) {
+                else if (event.key.keysym.sym == SDLK_o)
+                {
                     fprintf(stdout, "Stone Selected\n");
                     currentParticleType = PARTICLE_SOLID;
+                }
+                else if (event.key.keysym.sym == SDLK_r)
+                {
+                    clearGrid();
+                    fprintf(stdout, "Game Cleared\n");
+                }
+                else if (event.key.keysym.sym == SDLK_EQUALS)
+                {
+                    brushSize++;
+                    fprintf(stdout, "Brush Size : %d\n", brushSize);
+                }
+                else if (event.key.keysym.sym == SDLK_MINUS)
+                {
+                    brushSize = (brushSize > 1) ? brushSize - 1 : 1;
+                    fprintf(stdout, "Brush Size : %d\n", brushSize);
                 }
             }
         }
@@ -385,7 +496,7 @@ int main(int argc, char **argv)
         renderGame(renderer, font);
 
         int delta = SDL_GetTicks() - startLoop;
-        if (delta < desiredDelta) 
+        if (delta < desiredDelta)
         {
             SDL_Delay(desiredDelta - delta);
         }
