@@ -32,6 +32,7 @@ enum PARTICLE_TYPE
     PARTICLE_WATER,
     PARTICLE_WET_SAND,
     PARTICLE_SMOKE,
+    PARTICLE_FIRE,
     PARTICLE_SOLID,
     PARTICLE_CLEAR
 };
@@ -50,6 +51,9 @@ int grid[GRID_HEIGHT / CELL_SIZE][GRID_WIDTH / CELL_SIZE];
 
 int smokeTimer = 0;
 const int smokeLifeSpan = 60;
+
+int fireTimer = 0;
+const int fireLifeSpan = 30;
 
 void initGrid()
 {
@@ -131,7 +135,7 @@ void updateParticles()
                 switch (cellType)
                 {
                 case PARTICLE_SAND + 1:
-                    if (grid[y + 1][x] == EMPTY)
+                    if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y + 1][x] = cellType;
@@ -177,15 +181,15 @@ void updateParticles()
                         }
                         else
                         {
-                            int direction = rand() % 2;
-                            if (direction == 0 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y][x + 1] && grid[y][x + 1] == EMPTY)
+                            int directionW = rand() % 2;
+                            if (directionW == 0 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y][x + 1] && grid[y][x + 1] == EMPTY)
                             {
                                 updateGrid[y][x] = EMPTY;
                                 updateGrid[y][x + 1] = cellType;
                                 visitedGrid[y][x + 1] = 1;
                                 // fprintf(stdout ,"case 1\n");
                             }
-                            else if (direction == 1 && x > 0 && !visitedGrid[y][x - 1] && grid[y][x - 1] == EMPTY)
+                            else if (directionW == 1 && x > 0 && !visitedGrid[y][x - 1] && grid[y][x - 1] == EMPTY)
                             {
                                 updateGrid[y][x] = EMPTY;
                                 updateGrid[y][x - 1] = cellType;
@@ -256,12 +260,60 @@ void updateParticles()
                         grid[y][x] = EMPTY;
                     }
                     break;
+
+                case PARTICLE_FIRE + 1:
+                    ;
+                    int random = rand() % 6;
+                    if (random == 0 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
+                    {
+                        int temp = updateGrid[y + 1][x];
+                        updateGrid[y + 1][x] = updateGrid[y][x];
+                        updateGrid[y][x] = temp;
+                    }
+                    else if (random == 1 && x > 0 && grid[y + 1][x - 1] == EMPTY)
+                    {
+                        int temp = updateGrid[y + 1][x - 1];
+                        updateGrid[y + 1][x - 1] = updateGrid[y][x];
+                        updateGrid[y][x] = temp;
+                    }
+                    else if (random == 2 && x < GRID_WIDTH / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
+                    {
+                        int temp = updateGrid[y + 1][x + 1];
+                        updateGrid[y + 1][x + 1] = updateGrid[y][x];
+                        updateGrid[y][x] = temp;
+                    }
+                    else if (random == 3 && y > 0 && x > 0 && grid[y - 1][x - 1] == EMPTY)
+                    {
+                        int temp = updateGrid[y - 1][x - 1];
+                        updateGrid[y - 1][x - 1] = updateGrid[y][x];
+                        updateGrid[y][x] = temp;
+                    }
+                    else if (random == 4 && y > 0 && x < GRID_WIDTH / CELL_SIZE - 1 && grid[y - 1][x + 1] == EMPTY)
+                    {
+                        int temp = updateGrid[y - 1][x + 1];
+                        updateGrid[y - 1][x + 1] = updateGrid[y][x];
+                        updateGrid[y][x] = temp;
+                    }
+                    else if (random == 5 && y > 0 && grid[y - 1][x] == EMPTY)
+                    {
+                        int temp = updateGrid[y - 1][x];
+                        updateGrid[y - 1][x] = updateGrid[y][x];
+                        updateGrid[y][x] = temp;
+                    }
+
+                    fireTimer--;
+                    if (fireTimer <= 0)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                    }
+                    break;
                 }
             }
         }
     }
 
     smokeTimer = smokeLifeSpan;
+    fireTimer = fireLifeSpan;
 
     memcpy(grid, updateGrid, sizeof(grid));
 }
@@ -320,6 +372,10 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
 
             case PARTICLE_SMOKE + 1:
                 SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
+                break;
+
+            case PARTICLE_FIRE + 1:
+                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
                 break;
 
             case PARTICLE_SOLID + 1:
@@ -458,6 +514,11 @@ int main(int argc, char **argv)
                 {
                     fprintf(stdout, "Stone Selected\n");
                     currentParticleType = PARTICLE_SOLID;
+                }
+                else if (event.key.keysym.sym == SDLK_l)
+                {
+                    fprintf(stdout, "Fire Selected\n");
+                    currentParticleType = PARTICLE_FIRE;
                 }
                 else if (event.key.keysym.sym == SDLK_r)
                 {
