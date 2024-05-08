@@ -53,7 +53,7 @@ int smokeTimer = 0;
 const int smokeLifeSpan = 60;
 
 int fireTimer = 0;
-const int fireLifeSpan = 30;
+const int fireLifeSpan = 10;
 
 void initGrid()
 {
@@ -301,7 +301,7 @@ void updateParticles()
                         updateGrid[y][x] = temp;
                     }
 
-                    fireTimer--;
+                    fireTimer -= 2;
                     if (fireTimer <= 0)
                     {
                         updateGrid[y][x] = EMPTY;
