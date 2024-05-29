@@ -1,5 +1,18 @@
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#define NK_SDL_RENDERER_IMPLEMENTATION
+
+#include "../include/Nuklear/nuklear.h"
+#include "nuklear_sdl_renderer.h"
+
 #define SDL_MAIN_HANDLED
-#include "SDL2/SDL.h"
+#include "../include/SDL2/SDL.h"
 #include "../include/SDL2/SDL_ttf.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -394,11 +407,18 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
         }
     }
 
+    nk_sdl_render(NK_ANTI_ALIASING_ON);
+
     SDL_RenderPresent(renderer);
 }
 
 int main(int argc, char **argv)
 {
+    struct nk_context *ctx;
+    float font_scale = 1;
+
+    SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
+
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
         fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
@@ -422,6 +442,14 @@ int main(int argc, char **argv)
         fprintf(stderr, "Window could not be created: %s\n", SDL_GetError());
     }
 
+#if 0
+    SDL_SetHint(SDL_HINT_RENDER_BATCHING, "1");
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
+#endif
+
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
     if (renderer == NULL)
@@ -431,6 +459,33 @@ int main(int argc, char **argv)
         SDL_DestroyRenderer(renderer);
         SDL_Quit();
         return 1;
+    }
+
+    {
+        int render_w, render_h;
+        int window_w, window_h;
+        float scale_x, scale_y;
+        SDL_GetRendererOutputSize(renderer, &render_w, &render_h);
+        SDL_GetWindowSize(window, &window_w, &window_h);
+        scale_x = (float)(render_w) / (float)(window_w);
+        scale_y = (float)(render_h) / (float)(window_h);
+        SDL_RenderSetScale(renderer, scale_x, scale_y);
+        font_scale = scale_y;
+    }
+
+    ctx = nk_sdl_init(window, renderer);
+
+    {
+        struct nk_font_atlas *atlas;
+        struct nk_font_config config = nk_font_config(0);
+        struct nk_font *font;
+
+        nk_sdl_font_stash_begin(&atlas);
+        font = nk_font_atlas_add_default(atlas, 13 * font_scale, &config);
+        nk_sdl_font_stash_end();
+
+        font->handle.height /= font_scale;
+        nk_style_set_font(ctx, &font->handle);
     }
 
     srand(time(NULL));
@@ -448,6 +503,8 @@ int main(int argc, char **argv)
     while (running)
     {
         Uint32 startLoop = SDL_GetTicks();
+
+        nk_input_begin(ctx);
 
         while (SDL_PollEvent(&event))
         {
@@ -488,55 +545,114 @@ int main(int argc, char **argv)
                     }
                 }
             }
-            else if (event.type == SDL_KEYDOWN)
-            {
-                if (event.key.keysym.sym == SDLK_UP)
-                {
-                    fprintf(stdout, "Sand Selected\n");
-                    currentParticleType = PARTICLE_SAND;
-                }
-                else if (event.key.keysym.sym == SDLK_DOWN)
-                {
-                    fprintf(stdout, "Water Selected\n");
-                    currentParticleType = PARTICLE_WATER;
-                }
-                else if (event.key.keysym.sym == SDLK_RIGHT)
-                {
-                    fprintf(stdout, "Smoke Selected\n");
-                    currentParticleType = PARTICLE_SMOKE;
-                }
-                else if (event.key.keysym.sym == SDLK_LEFT)
-                {
-                    fprintf(stdout, "Erase Selected\n");
-                    currentParticleType = PARTICLE_CLEAR;
-                }
-                else if (event.key.keysym.sym == SDLK_o)
-                {
-                    fprintf(stdout, "Stone Selected\n");
-                    currentParticleType = PARTICLE_SOLID;
-                }
-                else if (event.key.keysym.sym == SDLK_l)
-                {
-                    fprintf(stdout, "Fire Selected\n");
-                    currentParticleType = PARTICLE_FIRE;
-                }
-                else if (event.key.keysym.sym == SDLK_r)
-                {
-                    clearGrid();
-                    fprintf(stdout, "Game Cleared\n");
-                }
-                else if (event.key.keysym.sym == SDLK_EQUALS)
-                {
-                    brushSize++;
-                    fprintf(stdout, "Brush Size : %d\n", brushSize);
-                }
-                else if (event.key.keysym.sym == SDLK_MINUS)
-                {
-                    brushSize = (brushSize > 1) ? brushSize - 1 : 1;
-                    fprintf(stdout, "Brush Size : %d\n", brushSize);
-                }
-            }
+            // else if (event.type == SDL_KEYDOWN)
+            // {
+            //     if (event.key.keysym.sym == SDLK_UP)
+            //     {
+            //         fprintf(stdout, "Sand Selected\n");
+            //         currentParticleType = PARTICLE_SAND;
+            //     }
+            //     else if (event.key.keysym.sym == SDLK_DOWN)
+            //     {
+            //         fprintf(stdout, "Water Selected\n");
+            //         currentParticleType = PARTICLE_WATER;
+            //     }
+            //     else if (event.key.keysym.sym == SDLK_RIGHT)
+            //     {
+            //         fprintf(stdout, "Smoke Selected\n");
+            //         currentParticleType = PARTICLE_SMOKE;
+            //     }
+            //     else if (event.key.keysym.sym == SDLK_LEFT)
+            //     {
+            //         fprintf(stdout, "Erase Selected\n");
+            //         currentParticleType = PARTICLE_CLEAR;
+            //     }
+            //     else if (event.key.keysym.sym == SDLK_o)
+            //     {
+            //         fprintf(stdout, "Stone Selected\n");
+            //         currentParticleType = PARTICLE_SOLID;
+            //     }
+            //     else if (event.key.keysym.sym == SDLK_l)
+            //     {
+            //         fprintf(stdout, "Fire Selected\n");
+            //         currentParticleType = PARTICLE_FIRE;
+            //     }
+            //     else if (event.key.keysym.sym == SDLK_r)
+            //     {
+            //         clearGrid();
+            //         fprintf(stdout, "Game Cleared\n");
+            //     }
+            //     else if (event.key.keysym.sym == SDLK_EQUALS)
+            //     {
+            //         brushSize++;
+            //         fprintf(stdout, "Brush Size : %d\n", brushSize);
+            //     }
+            //     else if (event.key.keysym.sym == SDLK_MINUS)
+            //     {
+            //         brushSize = (brushSize > 1) ? brushSize - 1 : 1;
+            //         fprintf(stdout, "Brush Size : %d\n", brushSize);
+            //     }
+            // }
+            nk_sdl_handle_event(&event);
         }
+
+        nk_sdl_handle_grab();
+        nk_input_end(ctx);
+
+        if (nk_begin(ctx, "Controls", nk_rect(0, 0, 210, 280), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE | NK_WINDOW_BACKGROUND))
+        {
+            nk_layout_row_static(ctx, 30, 80, 1);
+            nk_label(ctx, "Particles:", NK_TEXT_ALIGN_LEFT);
+
+            nk_layout_row_dynamic(ctx, 30, 2);
+            if (nk_button_label(ctx, "Sand"))
+            {
+                fprintf(stdout, "Sand Selected\n");
+                currentParticleType = PARTICLE_SAND;
+            }
+            if (nk_button_label(ctx, "Water"))
+            {
+                fprintf(stdout, "Water Selected\n");
+                currentParticleType = PARTICLE_WATER;    
+            }
+            if (nk_button_label(ctx, "Smoke"))
+            {
+                fprintf(stdout, "Smoke Selected\n");
+                currentParticleType = PARTICLE_SMOKE;
+            }
+            if (nk_button_label(ctx, "Stone"))
+            {
+                fprintf(stdout, "Stone Selected\n");
+                currentParticleType = PARTICLE_SOLID;
+            }
+            if (nk_button_label(ctx, "Erase"))
+            {
+                fprintf(stdout, "Erase Selected\n");
+                currentParticleType = PARTICLE_CLEAR;
+            }
+            if (nk_button_label(ctx, "Fire"))
+            {
+                fprintf(stdout, "Fire Selected\n");
+                currentParticleType = PARTICLE_FIRE;
+            }
+
+            nk_layout_row_static(ctx, 30, 80, 1);
+            if (nk_button_label(ctx, "Clear"))
+            {
+                clearGrid();
+                fprintf(stdout, "Game Cleared\n");
+            }
+
+            nk_layout_row_begin(ctx, NK_STATIC, 30, 2);
+            {
+                nk_layout_row_push(ctx, 70);
+                nk_label(ctx, "Brush Size:", NK_TEXT_LEFT);
+                nk_layout_row_push(ctx, 110);
+                nk_slider_int(ctx, 1, &brushSize, 15, 1);
+            }
+            nk_layout_row_end(ctx);
+        }
+        nk_end(ctx);
 
         updateParticles();
         renderGame(renderer, font);
@@ -548,6 +664,7 @@ int main(int argc, char **argv)
         }
     }
 
+    nk_sdl_shutdown();
     TTF_CloseFont(font);
     TTF_Quit();
     SDL_DestroyRenderer(renderer);
