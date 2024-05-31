@@ -32,7 +32,9 @@
 #define BUTTON_HEIGHT 50
 #define BUTTON_SPACING 10
 
-#define NUM_PARTICLES 3
+#define NUM_PARTICLES 6
+
+#define WET_SAND_PROBABILITY 0.2
 
 enum CELL_TYPE
 {
@@ -47,10 +49,13 @@ enum PARTICLE_TYPE
     PARTICLE_SMOKE,
     PARTICLE_FIRE,
     PARTICLE_SOLID,
-    PARTICLE_CLEAR
+    PARTICLE_CLEAR,
+    PARTICLE_OIL,
+    PARTICLE_LAVA,
+    PARTICLE_OBSIDIAN
 };
 
-enum PARTICLE_TYPE currentParticleType = PARTICLE_SAND;
+enum PARTICLE_TYPE currentParticleType = EMPTY;
 
 int brushSize = 1;
 
@@ -58,14 +63,16 @@ SDL_Rect buttonRects[NUM_PARTICLES];
 const char *particleTypeNames[NUM_PARTICLES] = {
     "Sand",
     "Water",
-    "Smoke"};
+    "Smoke",
+    "Oil",
+    "Lava",
+    "Obsidian"};
 
 int grid[GRID_HEIGHT / CELL_SIZE][GRID_WIDTH / CELL_SIZE];
 
 int smokeTimer = 0;
 const int smokeLifeSpan = 60;
 
-bool fireStep = false;
 int fireTimer = 0;
 const int fireLifeSpan = 10;
 
@@ -149,30 +156,41 @@ void updateParticles()
                 switch (cellType)
                 {
                 case PARTICLE_SAND + 1:
-                    if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
-                    {
-                        updateGrid[y][x] = EMPTY;
-                        updateGrid[y + 1][x] = cellType;
-                    }
-                    else if (x > 0 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x - 1] == EMPTY)
-                    {
-                        updateGrid[y][x] = EMPTY;
-                        updateGrid[y + 1][x - 1] = cellType;
-                    }
-                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
-                    {
-                        updateGrid[y][x] = EMPTY;
-                        updateGrid[y + 1][x + 1] = cellType;
-                    }
-                    else if (grid[y + 1][x] == PARTICLE_WATER + 1)
-                    {
-                        updateGrid[y][x] = PARTICLE_WATER + 1;
-                        updateGrid[y + 1][x] = PARTICLE_WET_SAND + 1;
-                    }
-                    else if (grid[y - 1][x] == PARTICLE_WATER + 1)
-                    {
-                        updateGrid[y][x] = PARTICLE_WET_SAND + 1;
-                    }
+                    if ((y > 0 && grid[y - 1][x] == PARTICLE_WET_SAND + 1) ||
+                        (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_WET_SAND + 1) ||
+                        (x > 0 && grid[y][x - 1] == PARTICLE_WET_SAND + 1) ||
+                        (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_WET_SAND + 1))
+                        {
+                            if ((float)(rand() % RAND_MAX) < WET_SAND_PROBABILITY)
+                            {
+                                updateGrid[y][x] = PARTICLE_WET_SAND + 1;
+                            }
+                        }
+
+                        if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x] = cellType;
+                        }
+                        else if (x > 0 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x - 1] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x - 1] = cellType;
+                        }
+                        else if (x < GRID_WIDTH / CELL_SIZE - 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x + 1] = cellType;
+                        }
+                        else if (grid[y + 1][x] == PARTICLE_WATER + 1)
+                        {
+                            updateGrid[y][x] = PARTICLE_WATER + 1;
+                            updateGrid[y + 1][x] = PARTICLE_WET_SAND + 1;
+                        }
+                        else if (grid[y - 1][x] == PARTICLE_WATER + 1)
+                        {
+                            updateGrid[y][x] = PARTICLE_WET_SAND + 1;
+                        }
 
                     if (x > 0 && x < GRID_WIDTH / CELL_SIZE - 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x - 1] == EMPTY && grid[y + 1][x + 1] == EMPTY && grid[y + 1][x] != EMPTY)
                     {
@@ -253,109 +271,262 @@ void updateParticles()
                     break;
 
                 case PARTICLE_SMOKE + 1:
-                    if (y > 0 && grid[y - 1][x] == EMPTY)
+                    // if (y > 0 && grid[y - 1][x] == EMPTY)
+                    // {
+                    //     updateGrid[y][x] = EMPTY;
+                    //     updateGrid[y - 1][x] = cellType;
+                    // }
+                    // else
+                    // {
+                    //     int random = rand() % 10;
+                    //     if (random < 1)
+                    //     {
+                    //         int directionSmoke = rand() % 4;
+                    //         if (directionSmoke == 0 && y > 0 && grid[y - 1][x] == EMPTY)
+                    //         {
+                    //             updateGrid[y][x] = EMPTY;
+                    //             updateGrid[y - 1][x] = cellType;
+                    //         }
+                    //         else if (directionSmoke == 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
+                    //         {
+                    //             updateGrid[y][x] = EMPTY;
+                    //             updateGrid[y + 1][x] = cellType;
+                    //         }
+                    //         else if (directionSmoke == 2 && x > 0 && grid[y][x - 1] == EMPTY)
+                    //         {
+                    //             updateGrid[y][x] = EMPTY;
+                    //             updateGrid[y][x - 1] = cellType;
+                    //         }
+                    //         else if (directionSmoke == 3 && x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == EMPTY)
+                    //         {
+                    //             updateGrid[y][x] = EMPTY;
+                    //             updateGrid[y][x + 1] = cellType;
+                    //         }
+                    //     }
+                    // }
+
+                    // smokeTimer--;
+                    // if (smokeTimer <= 0)
+                    // {
+                    //     updateGrid[y][x] = EMPTY;
+                    // }
+                    // break;
+                    smokeTimer++;
+                    if (smokeTimer >= smokeLifeSpan)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        smokeTimer = 0;
+                    }
+                    else if (y > 0 && grid[y - 1][x] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y - 1][x] = cellType;
                     }
-                    else
-                    {
-                        int random = rand() % 10;
-                        if (random < 1)
-                        {
-                            int directionSmoke = rand() % 4;
-                            if (directionSmoke == 0 && y > 0 && grid[y - 1][x] == EMPTY)
-                            {
-                                updateGrid[y][x] = EMPTY;
-                                updateGrid[y - 1][x] = cellType;
-                            }
-                            else if (directionSmoke == 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
-                            {
-                                updateGrid[y][x] = EMPTY;
-                                updateGrid[y + 1][x] = cellType;
-                            }
-                            else if (directionSmoke == 2 && x > 0 && grid[y][x - 1] == EMPTY)
-                            {
-                                updateGrid[y][x] = EMPTY;
-                                updateGrid[y][x - 1] = cellType;
-                            }
-                            else if (directionSmoke == 3 && x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == EMPTY)
-                            {
-                                updateGrid[y][x] = EMPTY;
-                                updateGrid[y][x + 1] = cellType;
-                            }
-                        }
-                    }
-
-                    smokeTimer--;
-                    if (smokeTimer <= 0)
+                    else if (x > 0 && y > 0 && grid[y - 1][x - 1] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
+                        updateGrid[y - 1][x - 1] = cellType;
+                    }
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && y > 0 && grid[y - 1][x + 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y - 1][x + 1] = cellType;
                     }
                     break;
 
                 case PARTICLE_FIRE + 1:
-                    if (y > 0 && grid[y - 1][x] == EMPTY && !fireStep)
+                    // if (y > 0 && grid[y - 1][x] == EMPTY &&)
+                    // {
+                    //     updateGrid[y][x] = EMPTY;
+                    //     updateGrid[y - 1][x] = cellType;
+                    // }
+                    // else
+                    // {
+                    //     if (!visitedGrid[y][x])
+                    //     {
+                    //         visitedGrid[y][x] = 1;
+                    //         int random = rand() % 6;
+                    //         if (random == 0 && y < GRID_HEIGHT / CELL_SIZE - 1 && !visitedGrid[y + 1][x] && grid[y + 1][x] == EMPTY)
+                    //         {
+                    //             int temp = updateGrid[y + 1][x];
+                    //             updateGrid[y + 1][x] = updateGrid[y][x];
+                    //             updateGrid[y][x] = temp;
+                    //             visitedGrid[y + 1][x] = 1;
+                    //         }
+                    //         else if (random == 1 && x > 0 && !visitedGrid[y + 1][x - 1] && grid[y + 1][x - 1] == EMPTY)
+                    //         {
+                    //             int temp = updateGrid[y + 1][x - 1];
+                    //             updateGrid[y + 1][x - 1] = updateGrid[y][x];
+                    //             updateGrid[y][x] = temp;
+                    //             visitedGrid[y + 1][x - 1] = 1;
+                    //         }
+                    //         else if (random == 2 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y + 1][x + 1] && grid[y + 1][x + 1] == EMPTY)
+                    //         {
+                    //             int temp = updateGrid[y + 1][x + 1];
+                    //             updateGrid[y + 1][x + 1] = updateGrid[y][x];
+                    //             updateGrid[y][x] = temp;
+                    //             visitedGrid[y + 1][x + 1] = 1;
+                    //         }
+                    //         else if (random == 3 && y > 0 && x > 0 && !visitedGrid[y - 1][x - 1] && grid[y - 1][x - 1] == EMPTY)
+                    //         {
+                    //             int temp = updateGrid[y - 1][x - 1];
+                    //             updateGrid[y - 1][x - 1] = updateGrid[y][x];
+                    //             updateGrid[y][x] = temp;
+                    //             visitedGrid[y - 1][x - 1] = 1;
+                    //         }
+                    //         else if (random == 4 && y > 0 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y - 1][x + 1] && grid[y - 1][x + 1] == EMPTY)
+                    //         {
+                    //             int temp = updateGrid[y - 1][x + 1];
+                    //             updateGrid[y - 1][x + 1] = updateGrid[y][x];
+                    //             updateGrid[y][x] = temp;
+                    //             visitedGrid[y - 1][x + 1] = 1;
+                    //         }
+                    //         else if (random == 5 && y > 0 && !visitedGrid[y - 1][x] && grid[y - 1][x] == EMPTY)
+                    //         {
+                    //             int temp = updateGrid[y - 1][x];
+                    //             updateGrid[y - 1][x] = updateGrid[y][x];
+                    //             updateGrid[y][x] = temp;
+                    //             visitedGrid[y - 1][x] = 1;
+                    //         }
+                    //     }
+                    // }
+
+                    // fireTimer -= 2;
+                    // if (fireTimer <= 0)
+                    // {
+                    //     updateGrid[y][x] = EMPTY;
+                    // }
+                    // break;
+                    fireTimer++;
+                    if (fireTimer >= fireLifeSpan)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        fireTimer = 0;
+                    }
+                    else if (y > 0 && grid[y - 1][x] == EMPTY)
                     {
                         updateGrid[y][x] = EMPTY;
                         updateGrid[y - 1][x] = cellType;
-                        fireStep = true;
                     }
-                    else
+                    else if (x > 0 && y > 0 && grid[y - 1][x - 1] == EMPTY)
                     {
-                        if (!visitedGrid[y][x])
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y - 1][x - 1] = cellType;
+                    }
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && y > 0 && grid[y - 1][x + 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y - 1][x + 1] = cellType;
+                    }
+                    break;
+
+                case PARTICLE_OIL + 1:
+                    if (!visitedGrid[y][x])
+                    {
+                        visitedGrid[y][x] = 1;
+                        int onFire = 0;
+                        if ((y > 0 && grid[y - 1][x] == PARTICLE_FIRE + 1) ||
+                            (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_FIRE + 1) ||
+                            (x > 0 && grid[y][x - 1] == PARTICLE_FIRE + 1) ||
+                            (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_FIRE + 1))
                         {
-                            visitedGrid[y][x] = 1;
-                            int random = rand() % 6;
-                            if (random == 0 && y < GRID_HEIGHT / CELL_SIZE - 1 && !visitedGrid[y + 1][x] && grid[y + 1][x] == EMPTY)
+                            onFire = 1;
+                        }
+
+                        if (onFire)
+                        {
+                            updateGrid[y][x] = PARTICLE_FIRE + 1;
+                        }
+                        else if (y < GRID_HEIGHT / CELL_SIZE - 1 && !visitedGrid[y + 1][x] && grid[y + 1][x] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x] = cellType;
+                            visitedGrid[y + 1][x] = 1;
+                        }
+                        else if (x > 0 && !visitedGrid[y + 1][x - 1] && grid[y + 1][x - 1] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x - 1] = cellType;
+                            visitedGrid[y + 1][x - 1] = 1;
+                        }
+                        else if (x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y + 1][x + 1] && grid[y + 1][x + 1] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x + 1] = cellType;
+                            visitedGrid[y + 1][x + 1] = 1;
+                        }
+                        else
+                        {
+                            int directionO = rand() % 2;
+                            if (directionO == 0 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y][x + 1] && grid[y][x + 1] == EMPTY)
                             {
-                                int temp = updateGrid[y + 1][x];
-                                updateGrid[y + 1][x] = updateGrid[y][x];
-                                updateGrid[y][x] = temp;
-                                visitedGrid[y + 1][x] = 1;
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y][x + 1] = cellType;
+                                visitedGrid[y][x + 1] = 1;
                             }
-                            else if (random == 1 && x > 0 && !visitedGrid[y + 1][x - 1] && grid[y + 1][x - 1] == EMPTY)
+                            else if (directionO == 1 && x > 0 && !visitedGrid[y][x - 1] && grid[y][x - 1] == EMPTY)
                             {
-                                int temp = updateGrid[y + 1][x - 1];
-                                updateGrid[y + 1][x - 1] = updateGrid[y][x];
-                                updateGrid[y][x] = temp;
-                                visitedGrid[y + 1][x - 1] = 1;
-                            }
-                            else if (random == 2 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y + 1][x + 1] && grid[y + 1][x + 1] == EMPTY)
-                            {
-                                int temp = updateGrid[y + 1][x + 1];
-                                updateGrid[y + 1][x + 1] = updateGrid[y][x];
-                                updateGrid[y][x] = temp;
-                                visitedGrid[y + 1][x + 1] = 1;
-                            }
-                            else if (random == 3 && y > 0 && x > 0 && !visitedGrid[y - 1][x - 1] && grid[y - 1][x - 1] == EMPTY)
-                            {
-                                int temp = updateGrid[y - 1][x - 1];
-                                updateGrid[y - 1][x - 1] = updateGrid[y][x];
-                                updateGrid[y][x] = temp;
-                                visitedGrid[y - 1][x - 1] = 1;
-                            }
-                            else if (random == 4 && y > 0 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y - 1][x + 1] && grid[y - 1][x + 1] == EMPTY)
-                            {
-                                int temp = updateGrid[y - 1][x + 1];
-                                updateGrid[y - 1][x + 1] = updateGrid[y][x];
-                                updateGrid[y][x] = temp;
-                                visitedGrid[y - 1][x + 1] = 1;
-                            }
-                            else if (random == 5 && y > 0 && !visitedGrid[y - 1][x] && grid[y - 1][x] == EMPTY)
-                            {
-                                int temp = updateGrid[y - 1][x];
-                                updateGrid[y - 1][x] = updateGrid[y][x];
-                                updateGrid[y][x] = temp;
-                                visitedGrid[y - 1][x] = 1;
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y][x - 1] = cellType;
+                                visitedGrid[y][x - 1] = 1;
                             }
                         }
                     }
+                    break;
 
-                    fireTimer -= 2;
-                    if (fireTimer <= 0)
+                case PARTICLE_LAVA + 1:
+                    if (!visitedGrid[y][x])
                     {
-                        updateGrid[y][x] = EMPTY;
+                        visitedGrid[y][x] = 1;
+                        int contactWithWater = 0;
+
+                        if ((y > 0 && grid[y - 1][x] == PARTICLE_WATER + 1) ||
+                            (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_WATER + 1) ||
+                            (x > 0 && grid[y][x - 1] == PARTICLE_WATER + 1) ||
+                            (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_WATER + 1))
+
+                        {
+                            contactWithWater = 1;
+                        }
+
+                        if (contactWithWater)
+                        {
+                            updateGrid[y][x] = PARTICLE_OBSIDIAN + 1;
+                        }
+                        else if (y < GRID_HEIGHT / CELL_SIZE - 1 && !visitedGrid[y + 1][x] && grid[y + 1][x] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x] = cellType;
+                            visitedGrid[y + 1][x] = 1;
+                        }
+                        else if (x > 0 && !visitedGrid[y + 1][x - 1] && grid[y + 1][x - 1] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x - 1] = cellType;
+                            visitedGrid[y + 1][x - 1] = 1;
+                        }
+                        else if (x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y + 1][x + 1] && grid[y + 1][x + 1] == EMPTY)
+                        {
+                            updateGrid[y][x] = EMPTY;
+                            updateGrid[y + 1][x + 1] = cellType;
+                            visitedGrid[y + 1][x + 1] = 1;
+                        }
+                        else
+                        {
+                            int directionL = rand() % 2;
+                            if (directionL == 0 && x < GRID_WIDTH / CELL_SIZE - 1 && !visitedGrid[y][x + 1] && grid[y][x + 1] == EMPTY)
+                            {
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y][x + 1] = cellType;
+                                visitedGrid[y][x + 1] = 1;
+                            }
+                            else if (directionL == 1 && x > 0 && !visitedGrid[y][x - 1] && grid[y][x - 1] == EMPTY)
+                            {
+                                updateGrid[y][x] = EMPTY;
+                                updateGrid[y][x - 1] = cellType;
+                                visitedGrid[y][x - 1] = 1;
+                            }
+                        }
                     }
                     break;
                 }
@@ -363,9 +534,8 @@ void updateParticles()
         }
     }
 
-    smokeTimer = smokeLifeSpan;
-    fireTimer = fireLifeSpan;
-    fireStep = false;
+    // smokeTimer = smokeLifeSpan;
+    // fireTimer = fireLifeSpan;
 
     memcpy(grid, updateGrid, sizeof(grid));
 }
@@ -436,6 +606,18 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
 
             case PARTICLE_CLEAR + 1:
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                break;
+
+            case PARTICLE_OIL + 1:
+                SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+                break;
+
+            case PARTICLE_LAVA + 1:
+                SDL_SetRenderDrawColor(renderer, 255, 69, 0, 255);
+                break;
+
+            case PARTICLE_OBSIDIAN + 1:
+                SDL_SetRenderDrawColor(renderer, 72, 61, 139, 255);
                 break;
 
             default:
@@ -673,6 +855,16 @@ int main(int argc, char **argv)
             {
                 fprintf(stdout, "Fire Selected\n");
                 currentParticleType = PARTICLE_FIRE;
+            }
+            if (nk_button_label(ctx, "Oil"))
+            {
+                fprintf(stdout, "Oil Selected\n");
+                currentParticleType = PARTICLE_OIL;
+            }
+            if (nk_button_label(ctx, "Lava"))
+            {
+                fprintf(stdout, "Lava Selected\n");
+                currentParticleType = PARTICLE_LAVA;
             }
 
             nk_layout_row_static(ctx, 30, 80, 1);
