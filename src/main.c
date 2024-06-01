@@ -76,6 +76,8 @@ const int smokeLifeSpan = 60;
 int fireTimer = 0;
 const int fireLifeSpan = 10;
 
+struct nk_colorf sandColor;
+
 void initGrid()
 {
     for (int y = 0; y < GRID_HEIGHT / CELL_SIZE; y++)
@@ -112,6 +114,8 @@ void clearGrid()
             grid[y][x] = EMPTY;
         }
     }
+
+    sandColor.r = 1.00000f, sandColor.g = 0.88627f, sandColor.b = 0.61176f, sandColor.a = 1.00000f;
 }
 
 void addParticle(int x, int y)
@@ -581,7 +585,7 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
             switch (grid[y][x])
             {
             case PARTICLE_SAND + 1:
-                SDL_SetRenderDrawColor(renderer, 255, 226, 156, 255);
+                SDL_SetRenderDrawColor(renderer, sandColor.r * 255, sandColor.g * 255, sandColor.b * 255, sandColor.a * 255);
                 break;
 
             case PARTICLE_WATER + 1:
@@ -720,6 +724,8 @@ int main(int argc, char **argv)
     int prevMouseX = -1, prevMouseY = -1;
 
     const int desiredDelta = 1000 / FPS;
+
+    sandColor.r = 1.00000f, sandColor.g = 0.88627f, sandColor.b = 0.61176f, sandColor.a = 1.00000f; 
 
     while (running)
     {
@@ -882,6 +888,21 @@ int main(int argc, char **argv)
                 nk_slider_int(ctx, 1, &brushSize, 15, 1);
             }
             nk_layout_row_end(ctx);
+
+            nk_layout_row_dynamic(ctx, 20, 1);
+            nk_label(ctx, "Sand Color:", NK_TEXT_LEFT);
+            nk_layout_row_dynamic(ctx, 25, 1);
+            if (nk_combo_begin_color(ctx, nk_rgb_cf(sandColor), nk_vec2(nk_widget_width(ctx), 400)))
+            {
+                nk_layout_row_dynamic(ctx, 120, 1);
+                sandColor = nk_color_picker(ctx, sandColor, NK_RGBA);
+                nk_layout_row_dynamic(ctx, 25, 1);
+                sandColor.r = nk_propertyf(ctx, "#R:", 0, sandColor.r, 1.0f, 0.01f, 0.005f);
+                sandColor.g = nk_propertyf(ctx, "#G:", 0, sandColor.g, 1.0f, 0.01f, 0.005f);
+                sandColor.b = nk_propertyf(ctx, "#B:", 0, sandColor.b, 1.0f, 0.01f, 0.005f);
+                sandColor.a = nk_propertyf(ctx, "#A:", 0, sandColor.a, 1.0f, 0.01f, 0.005f);
+                nk_combo_end(ctx);
+            }
         }
         nk_end(ctx);
 
