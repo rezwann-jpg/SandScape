@@ -24,8 +24,8 @@
 
 #define FPS 60
 
-#define GRID_WIDTH 800
-#define GRID_HEIGHT 600
+#define GRID_WIDTH 1280
+#define GRID_HEIGHT 720
 #define CELL_SIZE 4
 
 #define BUTTON_WIDTH 100
@@ -164,37 +164,37 @@ void updateParticles()
                         (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_WET_SAND + 1) ||
                         (x > 0 && grid[y][x - 1] == PARTICLE_WET_SAND + 1) ||
                         (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_WET_SAND + 1))
-                        {
-                            if ((float)(rand() % RAND_MAX) < WET_SAND_PROBABILITY)
-                            {
-                                updateGrid[y][x] = PARTICLE_WET_SAND + 1;
-                            }
-                        }
-
-                        if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
-                        {
-                            updateGrid[y][x] = EMPTY;
-                            updateGrid[y + 1][x] = cellType;
-                        }
-                        else if (x > 0 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x - 1] == EMPTY)
-                        {
-                            updateGrid[y][x] = EMPTY;
-                            updateGrid[y + 1][x - 1] = cellType;
-                        }
-                        else if (x < GRID_WIDTH / CELL_SIZE - 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
-                        {
-                            updateGrid[y][x] = EMPTY;
-                            updateGrid[y + 1][x + 1] = cellType;
-                        }
-                        else if (grid[y + 1][x] == PARTICLE_WATER + 1)
-                        {
-                            updateGrid[y][x] = PARTICLE_WATER + 1;
-                            updateGrid[y + 1][x] = PARTICLE_WET_SAND + 1;
-                        }
-                        else if (grid[y - 1][x] == PARTICLE_WATER + 1)
+                    {
+                        if ((float)(rand() % RAND_MAX) < WET_SAND_PROBABILITY * 100)
                         {
                             updateGrid[y][x] = PARTICLE_WET_SAND + 1;
                         }
+                    }
+
+                    if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y + 1][x] = cellType;
+                    }
+                    else if (x > 0 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x - 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y + 1][x - 1] = cellType;
+                    }
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x + 1] == EMPTY)
+                    {
+                        updateGrid[y][x] = EMPTY;
+                        updateGrid[y + 1][x + 1] = cellType;
+                    }
+                    else if (grid[y + 1][x] == PARTICLE_WATER + 1)
+                    {
+                        updateGrid[y][x] = PARTICLE_WATER + 1;
+                        updateGrid[y + 1][x] = PARTICLE_WET_SAND + 1;
+                    }
+                    else if (grid[y - 1][x] == PARTICLE_WATER + 1)
+                    {
+                        updateGrid[y][x] = PARTICLE_WET_SAND + 1;
+                    }
 
                     if (x > 0 && x < GRID_WIDTH / CELL_SIZE - 1 && y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x - 1] == EMPTY && grid[y + 1][x + 1] == EMPTY && grid[y + 1][x] != EMPTY)
                     {
@@ -253,10 +253,26 @@ void updateParticles()
                             }
                         }
                     }
+                    if (y > 0 && grid[y - 1][x] == PARTICLE_FIRE + 1)
+                    {
+                        updateGrid[y - 1][x] = PARTICLE_SMOKE + 1;
+                    }
+                    else if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_FIRE + 1)
+                    {
+                        updateGrid[y + 1][x] = PARTICLE_SMOKE + 1;
+                    }
+                    else if (x > 0 && grid[y][x - 1] == PARTICLE_FIRE + 1)
+                    {
+                        updateGrid[y][x - 1] = PARTICLE_SMOKE + 1;
+                    }
+                    else if (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_FIRE + 1)
+                    {
+                        updateGrid[y][x + 1] = PARTICLE_SMOKE + 1;
+                    }
                     break;
 
                 case PARTICLE_WET_SAND + 1:
-                    if (grid[y + 1][x] == EMPTY || grid[y + 1][x] == PARTICLE_WATER + 1)
+                    if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY || grid[y + 1][x] == PARTICLE_WATER + 1)
                     {
                         int temp = updateGrid[y + 1][x];
                         updateGrid[y + 1][x] = updateGrid[y][x];
@@ -485,17 +501,22 @@ void updateParticles()
                         int contactWithWater = 0;
 
                         if ((y > 0 && grid[y - 1][x] == PARTICLE_WATER + 1) ||
-                            (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_WATER + 1) ||
                             (x > 0 && grid[y][x - 1] == PARTICLE_WATER + 1) ||
                             (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_WATER + 1))
-
+                        {
+                            updateGrid[y][x] = PARTICLE_OBSIDIAN + 1;
+                        }
+                        
+                        if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_WATER + 1)
                         {
                             contactWithWater = 1;
                         }
-
                         if (contactWithWater)
                         {
-                            updateGrid[y][x] = PARTICLE_OBSIDIAN + 1;
+                            int temp = updateGrid[y + 1][x];
+                            updateGrid[y + 1][x] = updateGrid[y][x];
+                            updateGrid[y][x] = temp;
+                            updateGrid[y + 1][x] = PARTICLE_SOLID + 1;
                         }
                         else if (y < GRID_HEIGHT / CELL_SIZE - 1 && !visitedGrid[y + 1][x] && grid[y + 1][x] == EMPTY)
                         {
@@ -613,7 +634,7 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
                 break;
 
             case PARTICLE_OIL + 1:
-                SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+                SDL_SetRenderDrawColor(renderer, 54, 17, 2, 255);
                 break;
 
             case PARTICLE_LAVA + 1:
@@ -621,7 +642,7 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
                 break;
 
             case PARTICLE_OBSIDIAN + 1:
-                SDL_SetRenderDrawColor(renderer, 72, 61, 139, 255);
+                SDL_SetRenderDrawColor(renderer, 6, 3, 19, 255);
                 break;
 
             default:
@@ -725,7 +746,7 @@ int main(int argc, char **argv)
 
     const int desiredDelta = 1000 / FPS;
 
-    sandColor.r = 1.00000f, sandColor.g = 0.88627f, sandColor.b = 0.61176f, sandColor.a = 1.00000f; 
+    sandColor.r = 1.00000f, sandColor.g = 0.88627f, sandColor.b = 0.61176f, sandColor.a = 1.00000f;
 
     while (running)
     {
@@ -826,7 +847,7 @@ int main(int argc, char **argv)
         nk_sdl_handle_grab();
         nk_input_end(ctx);
 
-        if (nk_begin(ctx, "Controls", nk_rect(0, 0, 210, 280), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE | NK_WINDOW_BACKGROUND))
+        if (nk_begin(ctx, "Controls", nk_rect(0, 0, 210, 350), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE | NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE | NK_WINDOW_BACKGROUND))
         {
             nk_layout_row_static(ctx, 30, 80, 1);
             nk_label(ctx, "Particles:", NK_TEXT_ALIGN_LEFT);
