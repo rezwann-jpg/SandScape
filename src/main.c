@@ -34,7 +34,8 @@
 
 #define NUM_PARTICLES 6
 
-#define WET_SAND_PROBABILITY 0.2
+const float WET_SAND_PROBABILITY = 0.002;
+const float OIL_FIRE_PROBANILITY = 0.05;
 
 enum CELL_TYPE
 {
@@ -165,7 +166,7 @@ void updateParticles()
                         (x > 0 && grid[y][x - 1] == PARTICLE_WET_SAND + 1) ||
                         (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_WET_SAND + 1))
                     {
-                        if ((float)(rand() % RAND_MAX) < WET_SAND_PROBABILITY * 100)
+                        if ((((float)rand() / (float)(RAND_MAX)) * 1.0f) < WET_SAND_PROBABILITY)
                         {
                             updateGrid[y][x] = PARTICLE_WET_SAND + 1;
                         }
@@ -272,7 +273,7 @@ void updateParticles()
                     break;
 
                 case PARTICLE_WET_SAND + 1:
-                    if (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY || grid[y + 1][x] == PARTICLE_WATER + 1)
+                    if ((y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == EMPTY) || (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_WATER + 1))
                     {
                         int temp = updateGrid[y + 1][x];
                         updateGrid[y + 1][x] = updateGrid[y][x];
@@ -451,6 +452,17 @@ void updateParticles()
                             (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_FIRE + 1))
                         {
                             onFire = 1;
+                        }
+
+                        if ((y > 0 && grid[y - 1][x] == PARTICLE_LAVA + 1) ||
+                            (y < GRID_HEIGHT / CELL_SIZE - 1 && grid[y + 1][x] == PARTICLE_LAVA + 1) ||
+                            (x > 0 && grid[y][x - 1] == PARTICLE_LAVA + 1) ||
+                            (x < GRID_WIDTH / CELL_SIZE - 1 && grid[y][x + 1] == PARTICLE_LAVA + 1))
+                        {
+                            if ((((float)rand() / (float)(RAND_MAX)) * 1.0f) < OIL_FIRE_PROBANILITY)
+                            {
+                                onFire = 1;
+                            }
                         }
 
                         if (onFire)
