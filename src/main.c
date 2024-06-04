@@ -579,7 +579,8 @@ void updateParticles()
 
 void renderGame(SDL_Renderer *renderer, TTF_Font *font)
 {
-    SDL_SetRenderDrawColor(renderer, 35, 31, 32, 255);
+    // SDL_SetRenderDrawColor(renderer, 35, 31, 32, 255);
+    SDL_SetRenderDrawColor(renderer, 243, 230, 230, 255);
     SDL_RenderClear(renderer);
 
     // buttons rendering, will do it later
@@ -610,7 +611,7 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
     //     }
     // }
 
-    for (int y = 0; y < GRID_HEIGHT / CELL_SIZE; y++)
+    for (int y = 0; y < GRID_HEIGHT / CELL_SIZE - 1; y++)
     {
         for (int x = 0; x < GRID_WIDTH / CELL_SIZE; x++)
         {
@@ -758,7 +759,7 @@ int main(int argc, char **argv)
 
     const int desiredDelta = 1000 / FPS;
 
-    sandColor.r = 1.00000f, sandColor.g = 0.88627f, sandColor.b = 0.61176f, sandColor.a = 1.00000f;
+    sandColor.r = 0.87059f, sandColor.g = 0.69804f, sandColor.b = 0.43529f, sandColor.a = 1.00000f;
 
     while (running)
     {
