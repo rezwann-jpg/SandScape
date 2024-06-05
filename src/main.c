@@ -56,7 +56,7 @@ enum PARTICLE_TYPE
     PARTICLE_OBSIDIAN
 };
 
-enum PARTICLE_TYPE currentParticleType = EMPTY;
+enum PARTICLE_TYPE currentParticleType = PARTICLE_CLEAR;
 
 int brushSize = 1;
 
@@ -116,7 +116,7 @@ void clearGrid()
         }
     }
 
-    sandColor.r = 1.00000f, sandColor.g = 0.88627f, sandColor.b = 0.61176f, sandColor.a = 1.00000f;
+    sandColor.r = 0.87059f, sandColor.g = 0.69804f, sandColor.b = 0.43529f, sandColor.a = 1.00000f;
 }
 
 void addParticle(int x, int y)
@@ -639,7 +639,7 @@ void renderGame(SDL_Renderer *renderer, TTF_Font *font)
                 break;
 
             case PARTICLE_SOLID + 1:
-                SDL_SetRenderDrawColor(renderer, 51, 64, 70, 255);
+                SDL_SetRenderDrawColor(renderer, 136, 140, 141, 255);
                 break;
 
             case PARTICLE_CLEAR + 1:
