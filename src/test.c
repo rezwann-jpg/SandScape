@@ -1,16 +1,17 @@
 #include "game.h"
 
-const int FPS = 60;
-
-SDL_Window *g_window = NULL;
-SDL_Renderer *g_renderer = NULL;
-TTF_Font *g_font = NULL;
-
-SDL_Event g_event;
-bool g_running = true;
+#define FPS 60
+#define FPS_CAP
 
 int main() {
-    intializeGame(&g_window, &g_renderer, &g_font);
+    SDL_Renderer *renderer;
+    SDL_Window *window;
+    TTF_Font *font;
+
+    intializeGame(&window, &renderer, &font);
+
+    SDL_Event event;
+    bool running = true;
 
     const double freq_ms = SDL_GetPerformanceFrequency();
     Uint64 last_time = SDL_GetPerformanceCounter();
@@ -21,7 +22,7 @@ int main() {
     bool isDragging = false;
     int prevMouseX = -1, prevMouseY = -1;
 
-    while (g_running) {
+    while (running) {
         Uint64 current_time = SDL_GetPerformanceCounter();
         double delta = (current_time - last_time) / freq_ms * 1000.0;
 
@@ -31,19 +32,22 @@ int main() {
             frame_timer = current_time;
         }
 
-        handleEvents(&g_event, &g_running, &isDragging, &prevMouseX, &prevMouseY);
+        handleEvents(&event, &running, &isDragging, &prevMouseX, &prevMouseY);
 
+#ifdef FPS_CAP
         const double frame_delta = 1000.0 / FPS;
-        if (delta > frame_delta) {
+        if (delta > frame_delta)
+#endif
+        {
             update();
-            render(g_renderer, g_font);
+            render(renderer, font);
 
             last_time = current_time;
             ++frame_counter;
         }
     }
 
-    cleanUp(g_window, g_renderer, g_font);
+    cleanUp(window, renderer, font);
 
     return 0;
 }
