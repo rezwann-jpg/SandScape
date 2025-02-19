@@ -2,15 +2,12 @@
 
 const int FPS = 60;
 
-SDL_Window *g_window = NULL;
-SDL_Renderer *g_renderer = NULL;
-TTF_Font *g_font = NULL;
-
-SDL_Event g_event;
-bool g_running = true;
+GameContext* g_pContext = NULL;
 
 int main() {
-    intializeGame(&g_window, &g_renderer, &g_font);
+    g_pContext = (GameContext *)malloc(sizeof(GameContext));
+
+    intializeGame(g_pContext);
 
     const double freq_ms = SDL_GetPerformanceFrequency();
     Uint64 last_time = SDL_GetPerformanceCounter();
@@ -18,10 +15,7 @@ int main() {
     unsigned int frame_counter = 0;
     double frame_timer = last_time;
 
-    bool isDragging = false;
-    int prevMouseX = -1, prevMouseY = -1;
-
-    while (g_running) {
+    while (g_pContext->running) {
         Uint64 current_time = SDL_GetPerformanceCounter();
         double delta = (current_time - last_time) / freq_ms * 1000.0;
 
@@ -31,19 +25,21 @@ int main() {
             frame_timer = current_time;
         }
 
-        handleEvents(&g_event, &g_running, &isDragging, &prevMouseX, &prevMouseY);
+        handleEvents(g_pContext);
 
         const double frame_delta = 1000.0 / FPS;
         if (delta > frame_delta) {
             update();
-            render(g_renderer, g_font);
+            render(g_pContext->renderer, g_pContext->font);
 
             last_time = current_time;
             ++frame_counter;
         }
     }
 
-    cleanUp(g_window, g_renderer, g_font);
+    cleanUp(g_pContext);
+
+    free(g_pContext);
 
     return 0;
 }

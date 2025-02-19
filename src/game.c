@@ -4,15 +4,15 @@ const char *buttonLabels[NUM_PARTICLES] = { "Sand", "Water", "Smoke", "Fire", "S
 
 char fpsText[20] = "FPS: ";
 
-void intializeGame(SDL_Window **window, SDL_Renderer **renderer, TTF_Font **font) {
+void intializeGame(GameContext* pContext) {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         fprintf(stderr, "SDL_Initialization error: %s\n", SDL_GetError());
     }
 
-    *window = SDL_CreateWindow(GAME_TITLE, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
-    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    pContext->window = SDL_CreateWindow(GAME_TITLE, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+    pContext->renderer = SDL_CreateRenderer(pContext->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
-    if (!*window || !*renderer) {
+    if (!pContext->window || !pContext->renderer) {
         fprintf(stderr, "SDL Window Creation error: %s\n", SDL_GetError());
     }
 
@@ -20,12 +20,16 @@ void intializeGame(SDL_Window **window, SDL_Renderer **renderer, TTF_Font **font
         fprintf(stderr, "Font Initialization error: %s\n", TTF_GetError());
     }
 
-    *font = TTF_OpenFont("assets/MonospaceTypewriter.ttf", 24);
-    if (!*font) {
+    pContext->font = TTF_OpenFont("assets/MonospaceTypewriter.ttf", 24);
+    if (!pContext->font) {
         fprintf(stderr, "Font loading error: %s\n", TTF_GetError());
     }
 
     srand(time(NULL));
+
+    pContext->isDragging = false;
+    pContext->prevMouseX = -1;
+    pContext->prevMouseY = -1;
 
     intiGrid();
 }
@@ -85,20 +89,20 @@ void handleButtonClick(int mouseX, int mouseY) {
     }
 }
 
-void handleEvents(SDL_Event *event, bool *running, bool *isDragging, int *prevMouseX, int *prevMouseY) {
-    while (SDL_PollEvent(event)) {
-        switch (event->type) {
+void handleEvents(GameContext* pContext) {
+    while (SDL_PollEvent(&pContext->event)) {
+        switch (pContext->event.type) {
             case SDL_QUIT:
-                *running = false;
+                pContext->running = false;
                 break;
 
             case SDL_MOUSEBUTTONDOWN: {
                 int mouseX, mouseY;
                 SDL_GetMouseState(&mouseX, &mouseY);
                 if (mouseY < GRID_HEIGHT) {
-                    *isDragging = true;
-                    *prevMouseX = mouseX / CELL_SIZE;
-                    *prevMouseY = mouseY / CELL_SIZE;
+                    pContext->isDragging = true;
+                    pContext->prevMouseX = mouseX / CELL_SIZE;
+                    pContext->prevMouseY = mouseY / CELL_SIZE;
                 }
                 else {
                     handleButtonClick(mouseX, mouseY);
@@ -107,22 +111,22 @@ void handleEvents(SDL_Event *event, bool *running, bool *isDragging, int *prevMo
                 break;
             }
             case SDL_MOUSEBUTTONUP: {
-                *isDragging = false;
-                *prevMouseX = -1;
-                *prevMouseY = -1;
+                pContext->isDragging = false;
+                pContext->prevMouseX = -1;
+                pContext->prevMouseY = -1;
                 break;
             }
             case SDL_MOUSEMOTION: {
-                if (*isDragging) {
+                if (pContext->isDragging) {
                     int x, y;
                     SDL_GetMouseState(&x, &y);
                     if (y < GRID_HEIGHT) {
                         int currX = x / CELL_SIZE;
                         int currY = y / CELL_SIZE;
-                        if (currX != *prevMouseX || currY != *prevMouseY) {
+                        if (currX != pContext->prevMouseX || currY != pContext->prevMouseY) {
                             addParticle(currX, currY);
-                            *prevMouseX = currX;
-                            *prevMouseY = currentParticleType;
+                            pContext->prevMouseX = currX;
+                            pContext->prevMouseY = currY;
                         }
                     }
                 }
@@ -313,11 +317,11 @@ void update() {
     updateParticles();
 }
 
-void cleanUp(SDL_Window *window, SDL_Renderer *renderer, TTF_Font *font) {
-    TTF_CloseFont(font);
+void cleanUp(GameContext* pContext) {
+    TTF_CloseFont(pContext->font);
     TTF_Quit();
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(pContext->renderer);
+    SDL_DestroyWindow(pContext->window);
     SDL_Quit();
 }

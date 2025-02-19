@@ -26,17 +26,28 @@
 
 #define NUM_PARTICLES 9
 
+typedef struct {
+    SDL_Window* window;
+    SDL_Renderer* renderer;
+    TTF_Font* font;
+    SDL_Event event;
+    bool running;
+    bool isDragging;
+    int prevMouseX;
+    int prevMouseY;
+} GameContext;
+
 extern const char *buttonLabels[];
 extern char fpsText[];
 
-void intializeGame(SDL_Window **window, SDL_Renderer **renderer, TTF_Font **font);
+void intializeGame(GameContext* pContext);
 void handleBrushButtonClick(int mouseX, int mouseY);
 void handleButtonClick(int mouseX, int mouseY);
-void handleEvents(SDL_Event *event, bool *running, bool *isDragging, int *prevMouseX, int *prevMouseY);
+void handleEvents(GameContext* pContext);
 void renderButtons(SDL_Renderer *renderer, TTF_Font *font);
 void renderGameStats(SDL_Renderer *renderer, TTF_Font *font);
 void render(SDL_Renderer *renderer, TTF_Font *font);
 void update();
-void cleanUp(SDL_Window *window, SDL_Renderer *renderer, TTF_Font *font);
+void cleanUp(GameContext* pContext);
 
 #endif /* GAME_H_ */
